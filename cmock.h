@@ -1,74 +1,41 @@
 #include <dlfcn.h>
+#include <functional>
 
-#define MOCK_TEST_P1(func_name, ret, t1, expect)                                                     \
-  typedef ret (*func_name##_func_t)(t1 p1);                                                          \
-  func_name##_func_t func_name##_func = reinterpret_cast<ret (*)(t1)>(dlsym(RTLD_NEXT, #func_name)); \
-  bool func_name##_mock = false;                                                                     \
-  extern "C" ret func_name(t1 p1) {                                                                  \
-    if (func_name##_mock) {                                                                          \
-      return expect;                                                                                 \
-    } else {                                                                                         \
-      return func_name##_func(p1);                                                                   \
-    }                                                                                                \
+#include "mock_define.h"
+
+template<typename T>
+class MockFunction;
+
+template<typename Ret, typename... Args>
+class MockFunction<Ret(Args...)> {
+public:
+  MockFunction(Ret (*func_ptr)(Args...))
+  : real_func_(func_ptr) {}
+
+  void setMockValue(Ret ret_val) {
+    mock_value_ = ret_val;
   }
 
-#define MOCK_TEST_P2(func_name, ret, t1, t2, expect)                                                     \
-  typedef ret (*func_name##_func_t)(t1 p1, t2 p2);                                                       \
-  func_name##_func_t func_name##_func = reinterpret_cast<ret (*)(t1, t2)>(dlsym(RTLD_NEXT, #func_name)); \
-  bool func_name##_mock = false;                                                                         \
-  extern "C" ret func_name(t1 p1, t2 p2) {                                                               \
-    if (func_name##_mock) {                                                                              \
-      return expect;                                                                                     \
-    } else {                                                                                             \
-      return func_name##_func(p1, p2);                                                                   \
-    }                                                                                                    \
+  Ret operator()(Args... args) {
+    if (times_ >= 0) {
+      if (times == 0) {
+        is_mock_ = false;
+      }
+      times_ -= 1;
+    }
+    return is_mock_ ? mock_value_ : real_func_(args...);
   }
 
-#define MOCK_TEST_P3(func_name, ret, t1, t2, t3, expect)                                                     \
-  typedef ret (*func_name##_func_t)(t1 p1, t2 p2, t3 p3);                                                    \
-  func_name##_func_t func_name##_func = reinterpret_cast<ret (*)(t1, t2, t3)>(dlsym(RTLD_NEXT, #func_name)); \
-  bool func_name##_mock = false;                                                                             \
-  extern "C" ret func_name(t1 p1, t2 p2, t3 p3) {                                                            \
-    if (func_name##_mock) {                                                                                  \
-      return expect;                                                                                         \
-    } else {                                                                                                 \
-      return func_name##_func(p1, p2, p3);                                                                   \
-    }                                                                                                        \
+  void enable() { is_mock_ = true; } 
+  void disable() { is_mock_ = false; }
+  void enableMultipleTimes(int times) {
+    times_ = times;
+    is_mock_ = true;
   }
 
-#define MOCK_TEST_P4(func_name, ret, t1, t2, t3, t4, expect)                                                     \
-  typedef ret (*func_name##_func_t)(t1 p1, t2 p2, t3 p3, t4 p4);                                                 \
-  func_name##_func_t func_name##_func = reinterpret_cast<ret (*)(t1, t2, t3, t4)>(dlsym(RTLD_NEXT, #func_name)); \
-  bool func_name##_mock = false;                                                                                 \
-  extern "C" ret func_name(t1 p1, t2 p2, t3 p3, t4 p4) {                                                         \
-    if (func_name##_mock) {                                                                                      \
-      return expect;                                                                                             \
-    } else {                                                                                                     \
-      return func_name##_func(p1, p2, p3, p4);                                                                   \
-    }                                                                                                            \
-  }
-
-#define MOCK_TEST_P5(func_name, ret, t1, t2, t3, t4, t5, expect)                                                     \
-  typedef ret (*func_name##_func_t)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5);                                              \
-  func_name##_func_t func_name##_func = reinterpret_cast<ret (*)(t1, t2, t3, t4, t5)>(dlsym(RTLD_NEXT, #func_name)); \
-  bool func_name##_mock = false;                                                                                     \
-  extern "C" ret func_name(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) {                                                      \
-    if (func_name##_mock) {                                                                                          \
-      return expect;                                                                                                 \
-    } else {                                                                                                         \
-      return func_name##_func(p1, p2, p3, p4, p5);                                                                   \
-    }                                                                                                                \
-  }
-
-#define MOCK_TEST_P6(func_name, ret, t1, t2, t3, t4, t5, t6, expect)                   \
-  typedef ret (*func_name##_func_t)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6);         \
-  func_name##_func_t func_name##_func =                                                \
-      reinterpret_cast<ret (*)(t1, t2, t3, t4, t5, t6)>(dlsym(RTLD_NEXT, #func_name)); \
-  bool func_name##_mock = false;                                                       \
-  extern "C" ret func_name(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) {                 \
-    if (func_name##_mock) {                                                            \
-      return expect;                                                                   \
-    } else {                                                                           \
-      return func_name##_func(p1, p2, p3, p4, p5, p6);                                 \
-    }                                                                                  \
-  }
+private:
+  bool is_mock_ = false;
+  Ret (*real_func_)(Args...);
+  Ret mock_value_;
+  int times_ = -1;
+};
