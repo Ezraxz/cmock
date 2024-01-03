@@ -1,19 +1,22 @@
 # CMock
 
 For C/C++ Function Mock.\
-Based on Link Seams
+Based on Link Seams.\
+
+用于 C/C++ 测试打桩
 
 ## How to use
-1. 引入头文件 cmock.h, mock_define.h
-2. 参考example
+1. include cmock.h, mock_define.h
+2. see example
 
-## Todo List
+## Function List
 ### v1.0
 - Base √
-- Multiple return one value √
-- Multiple return different values
+- Multiple return the same value √
+- Multiple return different values √
+- Wait then return the same value √
 ### v2.0
-- depend on parameters
+- depend on parameters --- todo
 
 ## Attention
 
